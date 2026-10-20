@@ -2,6 +2,7 @@
 *.pcap
 *.pcapng
 *_resumen.txt
+*_resultados.txt
 
 # Python
 __pycache__/

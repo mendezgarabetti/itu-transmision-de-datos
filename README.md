@@ -8,6 +8,7 @@ se agregan nuevas a medida que avanza el cursado.
 | Carpeta | Práctica | Unidad |
 | :--- | :--- | :--- |
 | [`actividad1/`](actividad1/) | Topología mínima, ARP e ICMP con captura en Wireshark | 2 |
+| [`actividad2/`](actividad2/) | Tablas MAC: aprendizaje, inundación y envejecimiento en switches | 2 |
 
 ## 1. Clonar el repositorio en la VM de Mininet
 
