@@ -8,7 +8,7 @@ se agregan nuevas a medida que avanza el cursado.
 | Carpeta | Práctica | Unidad |
 | :--- | :--- | :--- |
 | [`actividad1/`](actividad1/) | Topología mínima, ARP e ICMP con captura en Wireshark | 2 |
-| [`actividad2/`](actividad2/) | Tablas MAC: aprendizaje, inundación y envejecimiento en switches | 2 |
+| [`actividad2/`](actividad2/) | Enlaces de 1 Mb/s a 10 Gb/s: ancho de banda, latencia y pérdida con iperf | 2 |
 
 ## 1. Clonar el repositorio en la VM de Mininet
 
@@ -46,5 +46,5 @@ unzip main.zip && cd itu-transmision-de-datos-main
 ## Requisitos
 
 - VM oficial de Mininet (<https://mininet.org/download/>), con Mininet, Open vSwitch y Wireshark.
-- Los scripts son compatibles con Python 3.5 o superior (VM con Ubuntu 16.04 en adelante).
+- Los scripts son compatibles con Python 3.5 o superior y están probados en la VM oficial Mininet 2.3.0 (Ubuntu 16.04, 32 bits).
 - Siempre se ejecutan con `sudo`; si algo queda trabado: `sudo mn -c`.

@@ -1,37 +1,55 @@
-# Actividad 2 · Tablas MAC: cómo aprende un switch
+# Actividad 2 · Enlaces, ancho de banda, latencia y pérdida
 
 ## Objetivo
 
-Observar cómo un switch Ethernet construye su **tabla de direcciones MAC** (también llamada
-tabla CAM o FDB), cuándo **inunda** una trama y cuándo la reenvía por un solo puerto, y qué pasa
-cuando las entradas **envejecen**.
+Armar una red más grande, **sin router** todavía (una sola subred), con enlaces de distintas
+velocidades, y medir con `iperf` y `ping`:
+
+- el **ancho de banda** que realmente se obtiene en cada enlace;
+- la **latencia** (RTT), con la red tranquila y con la red cargada;
+- la **pérdida de paquetes** cuando se envía más de lo que el enlace soporta.
 
 ## Topología
 
-Dos switches conectados entre sí, cada uno con dos hosts. Los switches funcionan **sin
-controlador** (modo *standalone*): se comportan como switches Ethernet clásicos que aprenden
-solos.
+Un switch central `s0` y cinco segmentos, cada uno con su switch y dos hosts. Todos los enlaces de
+un segmento tienen la misma velocidad, incluido el que lo une con `s0`. Todos los hosts están en
+`10.0.0.0/24`.
 
 ```
-  h1 ──(1)┐                 ┌(1)── h3
-          s1 (3)───────(3) s2
-  h2 ──(2)┘                 └(2)── h4
+                          s0 (central)
+        ┌──────────┬──────────┼──────────┬──────────┐
+       s1         s2         s3         s4         s5
+     1 Mb/s     10 Mb/s   100 Mb/s    1 Gb/s    10 Gb/s
+     h11 h12    h21 h22    h31 h32    h41 h42    h51 h52
 ```
 
-| Host | IP | MAC | Switch y puerto |
+| Segmento | Velocidad | Hosts | IPs |
 | :-: | :-: | :-: | :-: |
-| h1 | 10.0.0.1 | 00:00:00:00:00:01 | s1, puerto 1 |
-| h2 | 10.0.0.2 | 00:00:00:00:00:02 | s1, puerto 2 |
-| h3 | 10.0.0.3 | 00:00:00:00:00:03 | s2, puerto 1 |
-| h4 | 10.0.0.4 | 00:00:00:00:00:04 | s2, puerto 2 |
+| 1 | 1 Mb/s | h11, h12 | 10.0.0.11, 10.0.0.12 |
+| 2 | 10 Mb/s | h21, h22 | 10.0.0.21, 10.0.0.22 |
+| 3 | 100 Mb/s | h31, h32 | 10.0.0.31, 10.0.0.32 |
+| 4 | 1 Gb/s | h41, h42 | 10.0.0.41, 10.0.0.42 |
+| 5 | 10 Gb/s | h51, h52 | 10.0.0.51, 10.0.0.52 |
 
-El puerto 3 de cada switch es el enlace entre s1 y s2.
+Cada enlace tiene además **1 ms de retardo** (se puede cambiar, ver más abajo).
+
+> **Bits y bytes.** Las velocidades de red se expresan en **bits** por segundo:
+> 1 Mb/s = 1 megabit por segundo = 125 kilobytes por segundo. Un enlace de 1 Gb/s descarga
+> como máximo 125 MB (megabytes) por segundo. `iperf` informa en Mbits/sec.
 
 ## Archivos
 
-- `actividad2_topologia.py`: levanta la red y abre la consola `mininet>` para trabajar en clase.
-- `actividad2_tablas_mac.py`: recorre todos los pasos de forma automática, muestra las tablas
-  y guarda el resultado en `actividad2_tablas_mac_resultados.txt`.
+- `actividad2_topologia.py`: levanta la red y abre la consola `mininet>`.
+- `actividad2_mediciones.py`: hace todas las mediciones de forma automática y guarda una tabla en
+  `actividad2_mediciones_resultados.txt` (tarda unos 3 minutos).
+
+Ambos aceptan opciones para cambiar el retardo y la pérdida de **todos** los enlaces:
+
+```bash
+sudo python3 actividad2_topologia.py                # 1 ms de retardo, sin pérdida
+sudo python3 actividad2_topologia.py --delay 20ms   # enlaces "lejanos"
+sudo python3 actividad2_topologia.py --loss 2       # 2 % de pérdida en cada enlace
+```
 
 Antes de empezar, actualizá el repositorio:
 
@@ -40,72 +58,98 @@ cd ~/itu-transmision-de-datos && git pull
 cd actividad2
 ```
 
-## Comandos clave
+## Herramientas
 
-| Comando (dentro de `mininet>`) | Qué hace |
+| Comando (dentro de `mininet>`) | Qué mide |
 | :--- | :--- |
-| `sh ovs-appctl fdb/show s1` | Muestra la tabla MAC de s1: puerto, VLAN, MAC y antigüedad en segundos |
-| `sh ovs-appctl fdb/flush s1` | Vacía la tabla MAC de s1 |
-| `sh ovs-vsctl set bridge s1 other_config:mac-aging-time=20` | Cambia el tiempo de envejecimiento (por defecto 300 s) |
+| `h11 ping -c 10 h12` | Latencia (RTT) y pérdida de paquetes ICMP |
+| `iperf h31 h32` | Ancho de banda con **TCP**: lo máximo que el enlace deja pasar |
+| `iperfudp 150M h31 h32` | Envía **UDP** a una tasa fija (150 Mb/s) y muestra cuánto llegó |
+| `h32 iperf -s -u &` y `h31 iperf -c 10.0.0.32 -u -b 150M` | Igual que el anterior, pero muestra **jitter y pérdida** |
 
-Fuera de Mininet, desde otra terminal de la VM, son los mismos comandos con `sudo` y sin `sh`.
+TCP se adapta: si el enlace se satura, baja la velocidad y retransmite. UDP no: envía a la tasa
+pedida y, si el enlace no da abasto, **los paquetes que sobran se pierden**.
 
-## Parte A · Paso a paso en la consola
+## Parte A · Mediciones en la consola
 
 ```bash
 sudo python3 actividad2_topologia.py
 ```
 
-1. **Tablas vacías.** Mirá las tablas de s1 y s2 recién encendidos.
+1. **Latencia.** Medí el RTT dentro de un segmento (`h11 ping -c 10 h12`) y entre segmentos
+   (`h11 ping -c 10 h52`). ¿Cuántos enlaces atraviesa cada uno?
+2. **Ancho de banda TCP.** Medí con `iperf` cada segmento: `iperf h11 h12`, `iperf h21 h22`,
+   `iperf h31 h32`, `iperf h41 h42`, `iperf h51 h52`. Anotá los resultados en una tabla.
+3. **Cuello de botella.** Medí `iperf h11 h52` e `iperf h31 h41`. ¿Qué enlace manda?
+4. **Pérdida con UDP.** En el segmento de 10 Mb/s, enviá UDP por debajo y por encima de su
+   capacidad, y mirá la línea *Server Report* (jitter y pérdida):
    ```text
-   sh ovs-appctl fdb/show s1
-   sh ovs-appctl fdb/show s2
+   h22 iperf -s -u &
+   h21 iperf -c 10.0.0.22 -u -b 5M
+   h21 iperf -c 10.0.0.22 -u -b 15M
    ```
-2. **Primer ping.** Ejecutá `h1 ping -c 1 h2` y volvé a mirar **las dos** tablas.
-3. **Ping entre switches.** Ejecutá `h1 ping -c 1 h4` y mirá las tablas otra vez.
-4. **Todos con todos.** Ejecutá `pingall` y mirá las tablas completas.
-5. **Envejecimiento.** Bajá el tiempo de envejecimiento de s1 a 20 segundos, hacé `pingall`,
-   esperá unos 40 segundos sin generar tráfico y mirá la tabla de s1.
+5. **Latencia con carga.** En el segmento de 1 Mb/s, lanzá una transferencia larga y medí el
+   ping mientras tanto:
+   ```text
+   h12 iperf -s &
+   h11 iperf -c 10.0.0.12 -t 20 &
+   h11 ping -c 10 h12
+   ```
 
 Salí con `exit`. Si algo queda trabado: `sudo mn -c`.
 
-## Parte B · Experimento automático
+## Parte B · Mediciones automáticas
 
 ```bash
-sudo python3 actividad2_tablas_mac.py
+sudo python3 actividad2_mediciones.py
+cat actividad2_mediciones_resultados.txt
 ```
 
-El script repite los pasos anteriores y agrega un experimento: pone a **h3 a escuchar** mientras
-h1 le hace ping a h2, primero con las tablas completas y después con las tablas recién vaciadas.
-Tarda menos de un minuto (incluye una espera para ver el envejecimiento).
+Después repetilo con pérdida en los enlaces y compará las dos tablas:
 
 ```bash
-cat actividad2_tablas_mac_resultados.txt
+sudo python3 actividad2_mediciones.py --loss 1
 ```
+
+> Los números exactos dependen de la computadora donde corre la VM, sobre todo en los segmentos
+> de 1 y 10 Gb/s: ahí el límite puede ser la CPU y no el enlace.
 
 ## Preguntas para responder
 
-1. Después del primer `h1 ping h2`, **s2 ya tiene una entrada** aunque el tráfico era entre dos
-   hosts de s1. ¿Qué MAC aprendió, por qué puerto y qué trama la llevó hasta s2?
-   *(Pista: ¿cuál es el primer paquete de un ping? Revisá la Actividad 1.)*
-2. ¿Por qué s2 **no** aprendió la MAC de h2 en ese mismo paso?
-3. Con las tablas completas, ¿por qué en s1 hay **dos MACs en el puerto 3**? ¿Puede un mismo
-   puerto tener muchas MACs? ¿Cuándo pasa en una red real?
-4. En la Parte B, con las tablas completas h3 no ve nada del tráfico entre h1 y h2, pero con las
-   tablas vaciadas recibe **un** Echo Request. ¿Por qué uno solo y no los tres?
-5. Si h1 y h2 ya se conocían (su caché ARP estaba completa), ¿por qué el switch igual inundó una
-   trama? ¿Qué diferencia hay entre inundar un **broadcast** y una **unicast desconocida**?
-6. ¿Para qué sirve que las entradas envejezcan? ¿Qué problema aparecería si h4 se desconecta de
-   s2 y se conecta a s1, y la tabla nunca se borrara?
-7. Compará con un **hub**: ¿qué habría visto h3 en la Parte B si en lugar de switches hubiera hubs?
+**Ancho de banda**
 
-## Para profundizar (opcional)
+1. Completá una tabla con la velocidad configurada y la medida con TCP en cada segmento. ¿Por qué
+   TCP nunca llega exactamente al 100 % de la velocidad del enlace?
+2. ¿En el segmento de 10 Gb/s obtuviste 10 Gb/s? Si no, ¿qué lo limitó? *(Pista: emisor,
+   receptor y switches corren en la misma VM, que tiene un solo procesador.)*
+3. Entre `h11` y `h52`, ¿qué velocidad se obtiene? ¿Qué es un **cuello de botella**?
 
-- En la consola, dejá a h3 capturando y repetí el experimento a mano:
-  ```text
-  h3 tcpdump -n -i h3-eth0 icmp &
-  sh ovs-appctl fdb/flush s1
-  sh ovs-appctl fdb/flush s2
-  h1 ping -c 3 h2
-  ```
-- Abrí una captura de h3 en Wireshark y verificá la MAC de destino de la trama que llegó.
+**Pérdida**
+
+4. Con UDP al 50 % de la capacidad, ¿hubo pérdida? ¿Y al 150 %? Enviando 15 Mb/s por un enlace
+   de 10 Mb/s, ¿qué porcentaje esperabas perder? ¿Coincide con lo medido?
+5. En la tabla automática, el segmento de 1 Mb/s **no pierde nada** aunque recibe UDP al 150 %
+   durante 5 segundos. ¿Dónde quedaron los paquetes que sobraban? Repetí la prueba durante 30
+   segundos y mirá el informe del servidor (el cliente no lo recibe: queda atrás de la cola):
+   ```text
+   h12 iperf -s -u > /tmp/udp.txt &
+   h11 iperf -c 10.0.0.12 -u -b 1500K -t 30
+   h11 sleep 15
+   h12 cat /tmp/udp.txt
+   ```
+   ¿Qué cambia? ¿Por qué el informe dice que la transferencia duró más de 30 segundos?
+6. En los segmentos de 1 y 10 Gb/s, ¿la pérdida de UDP se debe al enlace o a otra cosa? Mirá
+   cuánto pudo **enviar** el emisor.
+
+**Latencia**
+
+7. ¿Por qué el RTT dentro de un segmento es de unos 4 ms si cada enlace tiene 1 ms de retardo?
+   ¿Cuánto da entre `h11` y `h52` y por qué?
+8. En el segmento de 1 Mb/s, ¿cuánto aumentó el RTT durante la descarga? ¿Dónde esperan los
+   paquetes del ping? *(Este fenómeno se conoce como* bufferbloat*.)*
+
+**Pérdida en los enlaces**
+
+9. Compará la tabla normal con la de `--loss 1`. ¿En qué segmentos cae más el rendimiento de TCP?
+   ¿Por qué una pérdida del 1 % casi no afecta al enlace de 1 Mb/s y hunde al de 1 Gb/s?
+10. ¿Por qué esa misma pérdida apenas se nota en un `ping`?
