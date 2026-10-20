@@ -9,7 +9,7 @@ se agregan nuevas a medida que avanza el cursado.
 | :--- | :--- | :--- |
 | [`actividad1/`](actividad1/) | Topología mínima, ARP e ICMP con captura en Wireshark | 2 |
 
-Presentación de la clase: <https://fosshlab.org/itu/transmision-datos/>
+Presentación de la clase: <https://fosshlab.org/itu-txd/presentacion-mininet/>
 
 ## 1. Clonar el repositorio en la VM de Mininet
 
