@@ -1,9 +1,12 @@
 import re
+import sys
 import time
 from pathlib import Path
 
 from mininet.log import info, setLogLevel
 
+# Como el script corre con sudo, no queremos dejar un __pycache__ de root en la carpeta.
+sys.dont_write_bytecode = True
 from actividad2_topologia import SEGMENTS, build_network, label, parse_args
 
 RESULTS_FILE = Path('actividad2_mediciones_resultados.txt')
