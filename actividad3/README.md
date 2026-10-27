@@ -101,11 +101,16 @@ cat actividad3_tablas_mac_resultados.txt
 
 ## Para profundizar (opcional)
 
+> `dpctl/del-flows` borra el caché de flujos que Open vSwitch mantiene en el kernel. Sin ese
+> paso, los primeros paquetes después del `fdb/flush` pueden seguir saliendo por el puerto que
+> el switch ya conocía y el resultado cambia de una vez a otra.
+
 - En la consola, dejá a h3 capturando y repetí el experimento a mano:
   ```text
   h3 tcpdump -n -i h3-eth0 icmp &
   sh ovs-appctl fdb/flush s1
   sh ovs-appctl fdb/flush s2
+  sh ovs-appctl dpctl/del-flows
   h1 ping -c 3 h2
   ```
 - Abrí una captura de h3 en Wireshark y verificá la MAC de destino de la trama que llegó.

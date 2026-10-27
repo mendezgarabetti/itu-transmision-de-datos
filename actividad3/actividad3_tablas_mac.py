@@ -33,6 +33,15 @@ def show_tables(net, title):
             report('   {:<7} {:<19} {:<5} {}'.format(port, mac, names.get(mac, '?'), age))
 
 
+def flush_tables(net):
+    for switch in net.switches:
+        switch.cmd('ovs-appctl fdb/flush', switch)
+    # OVS guarda en el kernel una copia de las decisiones ya tomadas (caché
+    # de flujos). fdb/flush no la borra al instante: sin esto, los primeros
+    # paquetes seguirían usando el puerto viejo como si la tabla estuviera llena.
+    net.switches[0].cmd('ovs-appctl dpctl/del-flows')
+
+
 def count_icmp_seen_by(host, action):
     # Captura en la interfaz del host solo los ICMP que NO son para él.
     capture = '/tmp/{}_icmp.pcap'.format(host.name)
@@ -74,9 +83,15 @@ def main():
     report('=== Paso 4: h3 ve el trafico entre h1 y h2? ===')
     seen = count_icmp_seen_by(h3, lambda: h1.cmd('ping -c 3 10.0.0.2'))
     report('Con las tablas completas, h3 recibio {} paquetes ICMP ajenos.'.format(len(seen)))
-    for switch in net.switches:
-        switch.cmd('ovs-appctl fdb/flush', switch)
-    seen = count_icmp_seen_by(h3, lambda: h1.cmd('ping -c 3 10.0.0.2'))
+
+    # Las tablas se vacían con h3 ya escuchando: si se vaciaran antes, una
+    # sonda ARP de h1 o h2 durante la espera podría volver a enseñarle al
+    # switch dónde está h2 y h3 no vería nada.
+    def flush_and_ping():
+        flush_tables(net)
+        h1.cmd('ping -c 3 10.0.0.2')
+
+    seen = count_icmp_seen_by(h3, flush_and_ping)
     report('Con las tablas vaciadas, h3 recibio {} paquetes ICMP ajenos:'.format(len(seen)))
     for line in seen:
         report('   ' + line)
