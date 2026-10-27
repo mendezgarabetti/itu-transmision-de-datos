@@ -9,6 +9,9 @@ se agregan nuevas a medida que avanza el cursado.
 | :--- | :--- | :--- |
 | [`actividad1/`](actividad1/) | Topología mínima, ARP e ICMP con captura en Wireshark | 2 |
 | [`actividad2/`](actividad2/) | Enlaces de 1 Mb/s a 10 Gb/s: ancho de banda, latencia y pérdida con iperf | 2 |
+| [`actividad3/`](actividad3/) | Tablas MAC: cómo aprende un switch (inundación y envejecimiento) | 3 |
+| [`actividad4/`](actividad4/) | Establecimiento y liberación de una conexión TCP (handshake, FIN vs. RST, UDP) | 3 |
+| [`actividad5/`](actividad5/) | Control de errores: bits invertidos y retransmisión de TCP | 3 |
 
 ## 1. Clonar el repositorio en la VM de Mininet
 
