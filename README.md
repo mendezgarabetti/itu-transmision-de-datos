@@ -12,6 +12,8 @@ se agregan nuevas a medida que avanza el cursado.
 | [`actividad3/`](actividad3/) | Tablas MAC: cómo aprende un switch (inundación y envejecimiento) | 3 |
 | [`actividad4/`](actividad4/) | Establecimiento y liberación de una conexión TCP (handshake, FIN vs. RST, UDP) | 3 |
 | [`actividad5/`](actividad5/) | Control de errores: bits invertidos y retransmisión de TCP | 3 |
+| [`actividad6/`](actividad6/) | Bucles de capa 2: tormenta de difusión y Spanning Tree Protocol (STP) | 3 |
+| [`actividad7/`](actividad7/) | VLANs: segmentación de capa 2 con un enlace trunk 802.1Q | 3 |
 
 ## 1. Clonar el repositorio en la VM de Mininet
 
