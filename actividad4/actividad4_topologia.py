@@ -1,21 +1,21 @@
 from mininet.cli import CLI
 from mininet.log import info, setLogLevel
 from mininet.net import Mininet
-from mininet.node import Controller
+from mininet.node import OVSSwitch
 
 
 def build_network():
-    net = Mininet(controller=Controller)
-
-    info('*** Agregando controlador\n')
-    net.addController('c0')
+    # Sin controlador: el switch aprende solo, como un switch Ethernet clásico.
+    # Con el controlador de referencia, el primer paquete de cada conexión pasa
+    # por él y los segmentos TCP pueden llegar desordenados a la captura.
+    net = Mininet(controller=None)
 
     info('*** Agregando hosts\n')
     h1 = net.addHost('h1', ip='10.0.0.1/24')
     h2 = net.addHost('h2', ip='10.0.0.2/24')
 
     info('*** Agregando switch\n')
-    s1 = net.addSwitch('s1')
+    s1 = net.addSwitch('s1', cls=OVSSwitch, failMode='standalone')
 
     info('*** Creando enlaces\n')
     net.addLink(h1, s1)

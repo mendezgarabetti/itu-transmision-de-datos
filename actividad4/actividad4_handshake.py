@@ -20,7 +20,10 @@ def report(text=''):
 
 def capture(host, pcap_file, bpf_filter, action, settle=1):
     host.cmd('rm -f', pcap_file)
-    host.cmd('tcpdump -n -i {}-eth0 -w {} {} 2>/dev/null &'.format(host.name, pcap_file, bpf_filter))
+    # --immediate-mode: sin él, tcpdump recibe los paquetes del kernel en bloques
+    # cada ~1 s y, si se lo corta antes, la captura queda vacía o incompleta.
+    host.cmd('tcpdump -n --immediate-mode -i {}-eth0 -w {} {} 2>/dev/null &'.format(
+        host.name, pcap_file, bpf_filter))
     time.sleep(1)
     action()
     time.sleep(settle)

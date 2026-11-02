@@ -91,9 +91,10 @@ tcp_normal.pcap`, ver troubleshooting en el README de la Actividad 1 si hace fal
 1. Identificá las tres tramas del *three-way handshake*: ¿qué flags tiene cada una (`SYN`,
    `SYN, ACK`, `ACK`)? ¿Quién las manda?
 2. ¿En qué trama va el mensaje `hola`? ¿Y la respuesta del servidor?
-3. El cierre normal necesita **cuatro** tramas (`FIN`+`ACK` de cada lado). Identificalas: ¿quién
-   cierra primero, el cliente o el servidor? *(Pista: mirá quién llama a `close()` primero en el
-   código.)*
+3. El cierre normal necesita un `FIN` y un `ACK` de cada lado. Identificalos: ¿quién cierra
+   primero, el cliente o el servidor? *(Pista: mirá quién llama a `close()` primero en el
+   código.)* ¿Por qué en la captura aparecen solo **tres** tramas y no cuatro? *(Pista: mirá los
+   flags del `FIN` del otro extremo.)*
 
 **Cierre abrupto (`tcp_rst.pcap`)**
 

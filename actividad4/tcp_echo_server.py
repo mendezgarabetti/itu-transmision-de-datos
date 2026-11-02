@@ -12,9 +12,13 @@ def main():
     while True:
         conn, addr = srv.accept()
         print('Conexion aceptada desde {}'.format(addr))
-        data = conn.recv(4096)
-        if data:
-            conn.sendall(data)
+        try:
+            data = conn.recv(4096)
+            if data:
+                conn.sendall(data)
+        except ConnectionResetError:
+            # El cliente cerró con RST: se descarta la conexión y se sigue atendiendo.
+            print('Conexion reseteada por {}'.format(addr))
         conn.close()
 
 
