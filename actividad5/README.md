@@ -41,10 +41,14 @@ sudo python3 actividad5_topologia.py --corrupt 10
 
 1. **Sin mirar nada todavía**, lanzá el servidor y una transferencia:
    ```text
-   h2 iperf -s > /dev/null 2>&1 &
+   h2 iperf -s > /tmp/servidor.txt 2>&1 &
    h1 iperf -c 10.0.0.2 -n 2M
+   h2 cat /tmp/servidor.txt
    ```
-   Anotá la velocidad final (línea `Mbits/sec`).
+   Anotá la velocidad que informa **el servidor** (línea `Mbits/sec` del último comando). La del
+   cliente puede dar más que los 10 Mb/s del enlace: el cliente termina cuando sus datos
+   entraron en la cola de salida, no cuando llegaron. Si el servidor todavía no muestra la línea,
+   esperá unos segundos y repetí el `cat`.
 2. Repetí la topología con `--corrupt 0` (sin errores) y compará la velocidad.
 3. **Ahora con captura**, para ver los errores de cerca:
    ```text

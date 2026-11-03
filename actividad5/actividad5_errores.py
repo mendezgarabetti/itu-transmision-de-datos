@@ -18,14 +18,33 @@ def report(text=''):
     lines.append(text)
 
 
+def server_report(host, path, timeout=60):
+    # iperf -y C: el servidor escribe una linea CSV recien cuando recibio todo.
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        for line in host.cmd('cat', path).splitlines():
+            if line.count(',') >= 8:
+                return line.split(',')
+        time.sleep(1)
+    return None
+
+
 def run_transfer(net, pcap_file):
     h1, h2 = net.get('h1', 'h2')
+    report_file = '/tmp/iperf_servidor.csv'
     h1.cmd('rm -f', pcap_file)
-    h1.cmd('tcpdump -n -i h1-eth0 -w {} tcp 2>/dev/null &'.format(pcap_file))
+    h2.cmd('rm -f', report_file)
+    # --immediate-mode: sin el, tcpdump recibe los paquetes del kernel en bloques
+    # y, si se lo corta enseguida, la captura queda incompleta.
+    h1.cmd('tcpdump -n --immediate-mode -i h1-eth0 -w {} tcp 2>/dev/null &'.format(pcap_file))
     time.sleep(1)
-    h2.cmd('iperf -s > /dev/null 2>&1 &')
+    h2.cmd('iperf -s -y C > {} 2>/dev/null &'.format(report_file))
     time.sleep(1)
-    out = h1.cmd('iperf -c 10.0.0.2 -n {}'.format(TRANSFER))
+    h1.cmd('iperf -c 10.0.0.2 -n {} > /dev/null 2>&1'.format(TRANSFER))
+    # El cliente termina cuando sus datos entraron en la cola de salida, no cuando
+    # llegaron. La velocidad se toma del servidor, que informa al recibir todo.
+    row = server_report(h2, report_file)
+    time.sleep(1)
     h2.cmd('kill %iperf')
     h1.cmd('kill %tcpdump')
     time.sleep(1)
@@ -34,10 +53,7 @@ def run_transfer(net, pcap_file):
     retrans = h1.cmd(
         'tshark -r {} -Y "tcp.analysis.retransmission" 2>/dev/null | wc -l'.format(pcap_file)
     ).strip()
-    speed = None
-    for line in out.splitlines():
-        if '/sec' in line:
-            speed = line.strip().split()[-2] + ' ' + line.strip().split()[-1]
+    speed = '{:.2f} Mbits/sec'.format(int(row[8]) / 1e6) if row else None
     return total, int(retrans or 0), speed
 
 
@@ -48,7 +64,7 @@ def main():
 
     report('Actividad 5 - Control de errores: bits invertidos y retransmision de TCP')
     report('Transferencia TCP de {} entre h1 y h2 (enlace de h1 limitado a {}), midiendo con '
-           'tcpdump/tshark en h1.'.format(TRANSFER, LINK_RATE))
+           'tcpdump/tshark en h1. La velocidad es la que midio el servidor (h2).'.format(TRANSFER, LINK_RATE))
 
     report('')
     report('=== 1. Enlace sin errores (0%) ===')

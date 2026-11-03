@@ -51,5 +51,5 @@ unzip main.zip && cd itu-transmision-de-datos-main
 ## Requisitos
 
 - VM oficial de Mininet (<https://mininet.org/download/>), con Mininet, Open vSwitch y Wireshark.
-- Los scripts son compatibles con Python 3.5 o superior y están probados en la VM oficial Mininet 2.3.0 (Ubuntu 16.04, 32 bits).
+- Los scripts son compatibles con Python 3.5 o superior y están probados en la VM oficial Mininet 2.3.0 (Ubuntu 20.04, 64 bits, con Open vSwitch 2.13).
 - Siempre se ejecutan con `sudo`; si algo queda trabado: `sudo mn -c`.

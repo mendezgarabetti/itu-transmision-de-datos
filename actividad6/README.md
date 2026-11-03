@@ -48,29 +48,41 @@ cd actividad6
 sudo python3 actividad6_topologia.py
 ```
 
-1. Un ping normal (unicast) funciona sin problema, porque nunca entra en el bucle:
-   ```text
-   h1 ping -c 2 h2
-   ```
-2. Mirá el contador de paquetes de un puerto de s1 **antes** de la tormenta:
+1. Mirá los contadores de paquetes de los puertos de s1 **antes** de la tormenta (`rx pkts`
+   tiene que estar en 0 o muy cerca):
    ```text
    sh ovs-ofctl dump-ports s1
    ```
-3. Mandá **un solo** paquete de difusión (broadcast):
+2. Mandá **un solo** paquete de difusión (broadcast):
    ```text
    h1 ping -b -c 1 -W 1 10.0.0.255
    ```
-4. Esperá 2-3 segundos y volvé a mirar el mismo contador:
+3. Esperá 2-3 segundos y volvé a mirar los mismos contadores:
    ```text
    sh ovs-ofctl dump-ports s1
    ```
    Deberías ver varios miles de paquetes más, de un solo ping.
-5. **Cortá el bucle** para frenar la tormenta antes de seguir:
+4. **Cortá el bucle** para frenar la tormenta y salí:
    ```text
    sh link s1 s2 down
+   exit
    ```
+5. **Un ping común tampoco se salva.** Volvé a levantar la topología sin STP y probá un ping
+   normal entre h1 y h2, mirando los contadores antes y después:
+   ```bash
+   sudo mn -c
+   sudo python3 actividad6_topologia.py
+   ```
+   ```text
+   sh ovs-ofctl dump-ports s1
+   h1 ping -c 2 h2
+   sh ovs-ofctl dump-ports s1
+   sh link s1 s2 down
+   exit
+   ```
+   ¿Respondió h2? ¿Qué pasó con los contadores?
 
-Salí con `exit`. Si algo queda trabado: `sudo mn -c`.
+Si algo queda trabado: `sudo mn -c`.
 
 **Ahora, con STP activado:**
 
@@ -80,20 +92,21 @@ sudo python3 actividad6_topologia.py --stp
 
 6. Esperá **unos 35 segundos** sin hacer nada (STP necesita ese tiempo para converger: pasa por
    los estados *listening*, *learning* y *forwarding* en cada puerto).
-7. Mirá el estado de los puertos entre switches:
+7. Mirá el estado de los seis puertos entre switches (`-eth2` y `-eth3` de cada switch; el
+   `-eth1` es el del host):
    ```text
-   sh ovs-vsctl get port s1-eth2 status:stp_state
-   sh ovs-vsctl get port s2-eth2 status:stp_state
-   sh ovs-vsctl get port s3-eth2 status:stp_state
+   sh for p in s1-eth2 s1-eth3 s2-eth2 s2-eth3 s3-eth2 s3-eth3; do echo $p $(ovs-vsctl get port $p status:stp_state); done
    ```
-   Uno de ellos va a estar en `blocking`: ese puerto sigue cableado, pero STP decidió no usarlo
-   para que no haya bucle.
-8. Repetí el mismo broadcast de antes:
+   Uno de los seis va a estar en `blocking`: ese puerto sigue cableado, pero STP decidió no
+   usarlo para que no haya bucle. Cuál de los seis queda bloqueado puede cambiar cada vez que
+   levantás la red: depende de qué switch STP elija como raíz.
+8. Repetí el mismo broadcast de antes y el ping común del paso 5:
    ```text
    h1 ping -b -c 1 -W 1 10.0.0.255
    sh ovs-ofctl dump-ports s1
+   h1 ping -c 2 h2
    ```
-   Esta vez el contador casi no se mueve.
+   Esta vez el contador casi no se mueve y h2 responde.
 
 Salí con `exit`. Si algo queda trabado: `sudo mn -c`.
 
@@ -115,8 +128,9 @@ con STP, y guarda la comparación.
 2. Un solo paquete de difusión generó miles de copias. ¿Por qué un switch nunca se da cuenta de
    que está reenviando una copia de algo que él mismo ya mandó? *(Pista: pensá en qué
    información lleva una trama Ethernet y qué le falta comparado con un paquete IP.)*
-3. ¿Por qué un **unicast** entre h1 y h2 (paso 1) no entra en la tormenta, pero un **broadcast**
-   sí?
+3. En el paso 5, un ping común entre h1 y h2 no tuvo respuesta y disparó la tormenta, aunque el
+   ping viaja en tramas unicast. ¿Qué trama manda h1 **antes** del primer Echo Request, y por qué
+   esa sí entra en el bucle? *(Pista: revisá la Actividad 1.)*
 4. En el paso 7, un puerto queda en `blocking`. ¿Ese puerto deja de recibir tramas por completo,
    o solo deja de *reenviarlas* para evitar el bucle? *(Pista: STP necesita seguir escuchando
    ese puerto para darse cuenta si el enlace que está usando se corta.)*

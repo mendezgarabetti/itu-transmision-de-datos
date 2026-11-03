@@ -19,12 +19,14 @@ def report(text=''):
     lines.append(text)
 
 
-def ping(src, dst, count=10):
+def ping(src, dst, count=20):
+    # Devuelve el RTT minimo y el promedio. El minimo muestra el retardo propio
+    # del camino; el promedio puede saltar por demoras de la VM, ajenas a la red.
     out = src.cmd('ping -c {} -i 0.2 {}'.format(count, dst.IP()))
-    rtt = re.search(r'= [\d.]+/([\d.]+)/', out)
-    loss = re.search(r'([\d.]+)% packet loss', out)
-    return (float(rtt.group(1)) if rtt else None,
-            float(loss.group(1)) if loss else None)
+    rtt = re.search(r'= ([\d.]+)/([\d.]+)/', out)
+    if not rtt:
+        return None, None
+    return float(rtt.group(1)), float(rtt.group(2))
 
 
 def csv_rows(output, min_fields):
@@ -76,6 +78,12 @@ def fmt(value, pattern):
     return pattern.format(value) if value is not None else 'sin dato'
 
 
+def rtts(rtt_min, rtt_avg):
+    if rtt_min is None:
+        return 'sin dato'
+    return '{:.1f}/{:.1f}'.format(rtt_min, rtt_avg)
+
+
 def main():
     args = parse_args()
     net = build_network(delay=args.delay, loss=args.loss)
@@ -86,40 +94,40 @@ def main():
 
     report('')
     report('=== 1. Dentro de cada segmento (hN1 -> hN2) ===')
-    report('{:<10} {:>9} {:>11} {:>14} {:>16} {:>16}'.format(
-        'Enlace', 'RTT (ms)', 'TCP (Mb/s)', 'UDP 50%: perd', 'UDP 150%: llega', 'UDP 150%: perd'))
+    report('{:<10} {:>13} {:>11} {:>14} {:>16} {:>16}'.format(
+        'Enlace', 'RTT min/prom', 'TCP (Mb/s)', 'UDP 50%: perd', 'UDP 150%: llega', 'UDP 150%: perd'))
     for n, mbps in enumerate(SEGMENTS, start=1):
         a, b = net.get('h{}1'.format(n), 'h{}2'.format(n))
-        rtt, _ = ping(a, b)
+        rtt_min, rtt_avg = ping(a, b)
         tcp = iperf_tcp(a, b)
         _, loss_half = iperf_udp(a, b, mbps * 0.5)
         got_over, loss_over = iperf_udp(a, b, mbps * 1.5)
-        report('{:<10} {:>9} {:>11} {:>14} {:>16} {:>16}'.format(
-            label(mbps), fmt(rtt, '{:.2f}'), fmt(tcp, '{:.2f}'), fmt(loss_half, '{:.1f}%'),
+        report('{:<10} {:>13} {:>11} {:>14} {:>16} {:>16}'.format(
+            label(mbps), rtts(rtt_min, rtt_avg), fmt(tcp, '{:.2f}'), fmt(loss_half, '{:.1f}%'),
             fmt(got_over, '{:.2f} Mb/s'), fmt(loss_over, '{:.1f}%')))
 
     report('')
     report('=== 2. Entre segmentos: manda el enlace mas lento del camino ===')
     for src, dst in (('h11', 'h52'), ('h31', 'h41'), ('h41', 'h52')):
         a, b = net.get(src, dst)
-        rtt, _ = ping(a, b)
+        rtt_min, rtt_avg = ping(a, b)
         tcp = iperf_tcp(a, b)
-        report('{} -> {}: TCP {} Mb/s | RTT {} ms'.format(
-            src, dst, fmt(tcp, '{:.2f}'), fmt(rtt, '{:.2f}')))
+        report('{} -> {}: TCP {} Mb/s | RTT min/prom {} ms'.format(
+            src, dst, fmt(tcp, '{:.2f}'), rtts(rtt_min, rtt_avg)))
 
     report('')
     report('=== 3. Latencia con el enlace cargado (segmento de 1 Mb/s) ===')
     a, b = net.get('h11', 'h12')
-    idle, _ = ping(a, b)
+    idle_min, idle_avg = ping(a, b)
     b.cmd('iperf -s > /dev/null 2>&1 &')
     time.sleep(1)
     a.cmd('iperf -c {} -t 8 > /dev/null 2>&1 &'.format(b.IP()))
     time.sleep(3)
-    loaded, _ = ping(a, b, count=20)
+    loaded_min, loaded_avg = ping(a, b, count=20)
     a.cmd('wait')
     b.cmd('kill %iperf')
-    report('RTT sin carga: {} ms | RTT durante una descarga TCP: {} ms'.format(
-        fmt(idle, '{:.2f}'), fmt(loaded, '{:.2f}')))
+    report('RTT min/prom sin carga: {} ms | durante una descarga TCP: {} ms'.format(
+        rtts(idle_min, idle_avg), rtts(loaded_min, loaded_avg)))
 
     RESULTS_FILE.write_text('\n'.join(lines) + '\n', encoding='utf-8')
     info('\n*** Resultados guardados en {}\n'.format(RESULTS_FILE))

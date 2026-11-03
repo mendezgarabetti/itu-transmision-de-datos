@@ -80,8 +80,8 @@ sudo python3 actividad4_handshake.py
 cat actividad4_handshake_resultados.txt
 ```
 
-Genera `tcp_normal.pcap`, `tcp_rst.pcap` y `udp_demo.pcap`. Abrilos con Wireshark (`wireshark-gtk
-tcp_normal.pcap`, ver troubleshooting en el README de la Actividad 1 si hace falta) para ver los
+Genera `tcp_normal.pcap`, `tcp_rst.pcap` y `udp_demo.pcap`. Abrilos con Wireshark (`wireshark
+tcp_normal.pcap &`, ver troubleshooting en el README de la Actividad 1 si hace falta) para ver los
 **flags** de cada trama (columna *Flags* o filtro `tcp.flags`).
 
 ## Preguntas para responder

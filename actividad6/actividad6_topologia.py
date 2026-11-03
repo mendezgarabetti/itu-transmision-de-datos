@@ -60,15 +60,14 @@ def main():
     info('*** STP {}\n'.format('activado' if stp else 'DESACTIVADO (hay un bucle sin control)'))
     info('*** Comandos sugeridos:\n')
     if not stp:
-        info('h1 ping -c 1 h2   # unicast: no entra en bucle, funciona normal\n')
         info('sh ovs-ofctl dump-ports s1   # contador de paquetes por puerto, antes de la tormenta\n')
         info('h1 ping -b -c 1 -W 1 10.0.0.255   # UN broadcast: dispara la tormenta\n')
         info('sh ovs-ofctl dump-ports s1   # mismo contador, segundos despues: deberia haber explotado\n')
         info('sh link s1 s2 down   # cortar el bucle para frenar la tormenta\n')
     else:
-        info('sh ovs-vsctl get port s1-eth2 status:stp_state   # esperar ~35s desde el arranque\n')
-        info('sh ovs-vsctl get port s2-eth2 status:stp_state\n')
-        info('sh ovs-vsctl get port s3-eth2 status:stp_state\n')
+        info('# esperar ~35 s desde el arranque y mirar los 6 puertos entre switches:\n')
+        info('sh for p in s1-eth2 s1-eth3 s2-eth2 s2-eth3 s3-eth2 s3-eth3; do '
+             'echo $p $(ovs-vsctl get port $p status:stp_state); done\n')
         info('h1 ping -b -c 1 -W 1 10.0.0.255   # mismo broadcast: ahora no deberia haber tormenta\n')
     info('exit\n\n')
 

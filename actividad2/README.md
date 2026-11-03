@@ -77,7 +77,9 @@ sudo python3 actividad2_topologia.py
 ```
 
 1. **Latencia.** Medí el RTT dentro de un segmento (`h11 ping -c 10 h12`) y entre segmentos
-   (`h11 ping -c 10 h52`). ¿Cuántos enlaces atraviesa cada uno?
+   (`h11 ping -c 10 h52`). ¿Cuántos enlaces atraviesa cada uno? Mirá el **mínimo** de la línea
+   `rtt min/avg/max`: en una VM, algunos pings pueden tardar decenas de milisegundos más por
+   demoras de la propia máquina virtual (no de la red), y eso infla el promedio.
 2. **Ancho de banda TCP.** Medí con `iperf` cada segmento: `iperf h11 h12`, `iperf h21 h22`,
    `iperf h31 h32`, `iperf h41 h42`, `iperf h51 h52`. Anotá los resultados en una tabla.
 3. **Cuello de botella.** Medí `iperf h11 h52` e `iperf h31 h41`. ¿Qué enlace manda?
@@ -143,7 +145,8 @@ sudo python3 actividad2_mediciones.py --loss 1
 
 **Latencia**
 
-7. ¿Por qué el RTT dentro de un segmento es de unos 4 ms si cada enlace tiene 1 ms de retardo?
+7. ¿Por qué el RTT **mínimo** dentro de un segmento es de unos 4 ms si cada enlace tiene 1 ms de
+   retardo?
    ¿Cuánto da entre `h11` y `h52` y por qué?
 8. En el segmento de 1 Mb/s, ¿cuánto aumentó el RTT durante la descarga? ¿Dónde esperan los
    paquetes del ping? *(Este fenómeno se conoce como* bufferbloat*.)*
