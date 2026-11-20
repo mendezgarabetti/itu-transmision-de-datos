@@ -53,3 +53,7 @@ unzip main.zip && cd itu-transmision-de-datos-main
 - VM oficial de Mininet (<https://mininet.org/download/>), con Mininet, Open vSwitch y Wireshark.
 - Los scripts son compatibles con Python 3.5 o superior y están probados en la VM oficial Mininet 2.3.0 (Ubuntu 20.04, 64 bits, con Open vSwitch 2.13).
 - Siempre se ejecutan con `sudo`; si algo queda trabado: `sudo mn -c`.
+
+## Proyecto de I+D+i
+
+La guía del Proyecto de I+D+i está en [`proyecto-idi/`](proyecto-idi/README.md).
